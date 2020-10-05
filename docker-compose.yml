@@ -1,0 +1,65 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+    - 2181:2181
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+    - 9092:9092
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "webhook-dev:1:1,replyTopic-dev:1:1"
+  profile-manager:
+    image: profilemanager:2.2 
+    volumes:
+      - /data/springboot-docker-app
+    ports:
+      - "8082:8082"
+    environment:
+       - SPRING_PROFILES_ACTIVE=dev
+  subscriber-service:
+    image: subscriber-service:2.2 
+    volumes:
+      - /data/springboot-docker-app  
+    ports:
+      - "8084:8084"
+    environment:
+       - SPRING_PROFILES_ACTIVE=dev
+  webhook:
+    image: mspoc:2.2
+    volumes:
+      - /data/springboot-docker-app
+    ports:
+      - "8080:8080"
+    links:
+      - profile-manager
+      - subscriber-service
+      - kafka
+    environment:
+       - SPRING_PROFILES_ACTIVE=dev
+  business-facilitator:
+    image: business:2.2  
+    volumes:
+      - /data/springboot-docker-app
+    ports:
+      - "8088:8088"
+    links:
+      - kafka
+    environment:
+       - SPRING_PROFILES_ACTIVE=dev
+  responder-service:
+    image: responderservice:2.2 
+    volumes:
+      - /data/springboot-docker-app
+    ports:
+      - "8090:8090"
+    links:
+      - kafka
+    environment:
+       - SPRING_PROFILES_ACTIVE=dev
